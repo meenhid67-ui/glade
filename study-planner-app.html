@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glade</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1B2A4A">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root{
+  --paper:#F3E8D8;
+  --ink:#4A3728;
+  --ink-soft:#8A7863;
+  --amber:#CC6B3D;
+  --coral:#B24A3A;
+  --priority-yellow:#D4A24C;
+  --priority-blue:#5C8374;
+  --line:#E4D4BC;
+  --white:#FFFCF6;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--paper);font-family:'Nunito',sans-serif;color:var(--ink);}
+#app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--white);position:relative;}
+
+header{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--line);
+}
+header .greeting{font-size:20px;font-weight:700;}
+header .cute-msg{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+header .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:6px;}
+
+main{flex:1;padding:16px 20px 100px;overflow-y:auto;}
+
+.card{
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:14px 16px;
+  margin-bottom:14px;
+  background:var(--white);
+  box-shadow:0 1px 3px rgba(40,55,74,0.05), 0 1px 2px rgba(40,55,74,0.04);
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card[onclick]:active{
+  transform:scale(0.98);
+  box-shadow:0 1px 2px rgba(40,55,74,0.06);
+}
+.tag{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.big{font-size:26px;font-weight:700;margin-top:6px;}
+
+.pill{
+  display:inline-block;font-family:'IBM Plex Mono',monospace;
+  font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;
+}
+.pill.coral{background:var(--coral);color:white;}
+.pill.amber{background:var(--amber);color:var(--ink);}
+
+.checkitem{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;}
+.box{width:16px;height:16px;border:1.5px solid var(--ink);border-radius:5px;flex:0 0 auto;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.2s ease;}
+.box.done{animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.box.done{background:var(--ink);}
+
+.bottom-nav{
+  position:sticky;bottom:0;
+  display:flex;justify-content:space-around;
+  border-top:1px solid var(--line);
+  background:var(--white);
+  padding:10px 0 calc(10px + env(safe-area-inset-bottom));
+}
+.nav-btn{
+  background:none;border:none;font-family:'Nunito',sans-serif;
+  font-size:10px;color:var(--ink-soft);display:flex;flex-direction:column;
+  align-items:center;gap:3px;cursor:pointer;padding:4px 8px;
+}
+.nav-btn .ic{font-size:18px;display:flex;color:var(--ink-soft);transition:color 0.2s ease;}
+.nav-btn.active{color:var(--ink);font-weight:700;}
+.nav-btn.active .ic{color:var(--ink);}
+
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+.calgrid .dow{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);padding-bottom:4px;}
+.calgrid .day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;font-size:13px;cursor:pointer;border:1px solid transparent;
+}
+.calgrid .day.exam{background:var(--coral);color:white;font-weight:700;}
+.calgrid .day.today{border-color:var(--ink);font-weight:700;}
+.calgrid .day.empty{cursor:default;}
+.calgrid .day.has-note::after{content:'';display:block;width:4px;height:4px;border-radius:50%;background:var(--amber);margin-top:2px;}
+.priority-pill{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;}
+.priority-pill.selected{border-color:var(--ink);}
+
+.placeholder{
+  text-align:center;padding:60px 20px;color:var(--ink-soft);
+  font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;
+}
+
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(27,42,74,0.4);
+  display:flex;align-items:flex-end;justify-content:center;z-index:10;
+}
+.modal{
+  background:var(--white);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+  padding:20px;
+}
+.modal input, .modal textarea{
+  width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;
+  font-family:'Nunito',sans-serif;font-size:14px;margin-top:6px;
+}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.btn{
+  flex:1;padding:10px;border-radius:16px;border:none;font-weight:600;
+  font-size:13px;cursor:pointer;position:relative;overflow:hidden;
+  transition:transform 0.12s ease;
+}
+.btn:active{transform:scale(0.96);}
+.btn::after{
+  content:'';
+  position:absolute;top:0;left:-75%;width:50%;height:100%;
+  background:linear-gradient(120deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform:skewX(-20deg);
+  transition:left 0.5s ease;
+  pointer-events:none;
+}
+.btn:active::after{left:125%;}
+.btn.primary{background:var(--ink);color:white;}
+.btn.ghost{background:var(--paper);color:var(--ink);}
+.btn.danger{background:var(--coral);color:white;}
+
+.loading{text-align:center;padding:60px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+.chatbubble{border-radius:18px;padding:9px 13px;font-size:13px;max-width:82%;line-height:1.4;}
+.chatbubble.bot{background:#EEF1F8;align-self:flex-start;}
+.chatbubble.user{background:var(--ink);color:white;align-self:flex-end;}
+
+@keyframes splashPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.06);}
+}
+
+@keyframes popIn{
+  0%{transform:scale(0.6);opacity:0;}
+  60%{transform:scale(1.1);opacity:1;}
+  100%{transform:scale(1);}
+}
+
+@keyframes slideIn{
+  from{transform:translateX(-100%);}
+  to{transform:translateX(0);}
+}
+
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(6px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+@keyframes flutter{
+  0%{transform:translateX(-36px) translateY(0);}
+  25%{transform:translateX(-8px) translateY(-8px);}
+  50%{transform:translateX(36px) translateY(0);}
+  75%{transform:translateX(-8px) translateY(-8px);}
+  100%{transform:translateX(-36px) translateY(0);}
+}
+</style>
+</head>
+<body>
+<div id="splash" style="position:fixed;inset:0;background:#4A3728;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.6s ease, transform 0.6s ease;">
+  <img src="icon-192.png" width="76" height="76" style="border-radius:20px;animation:splashPulse 1.8s ease-in-out infinite;">
+  <div style="color:white;font-family:'IBM Plex Mono',monospace;font-size:15px;margin-top:16px;letter-spacing:3px;">GLADE</div>
+</div>
+<div id="app">
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <button onclick="openSidebar()" style="background:none;border:none;color:var(--ink);cursor:pointer;padding:2px;flex:0 0 auto;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div class="greeting" style="flex:1;text-align:center;">Hi 👋</div>
+      <button onclick="openTutorial(false)" style="background:none;border:1px solid var(--line);color:var(--ink-soft);width:26px;height:26px;border-radius:50%;font-family:'IBM Plex Mono',monospace;font-size:13px;cursor:pointer;flex:0 0 auto;">?</button>
+    </div>
+    <div class="sub" id="header-sub" style="text-align:center;">loading...</div>
+  </header>
+  <div id="sidebar-slot"></div>
+  <main id="content"><div class="loading">Loading your data…</div></main>
+  <nav class="bottom-nav">
+    <button class="nav-btn" data-tab="home"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg></span>Home</button>
+    <button class="nav-btn" data-tab="calendar"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>Calendar</button>
+    <button class="nav-btn" data-tab="todo"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l2.5 2.5L16 9"/></svg></span>To-Do</button>
+    <button class="nav-btn" data-tab="tracker"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M10 2h4"/></svg></span>Tracker</button>
+    <button class="nav-btn" data-tab="chat"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-4 4V5a2 2 0 012-2h13a2 2 0 012 2z"/></svg></span>AI</button>
+  </nav>
+</div>
+
+<script>
+let state = { todos: [], examDates: {}, notes: {}, hoursLog: {}, chatLog: [], tutorialSeen: false, subjectDayHours: {}, studyAdvice: null, calendarEntries: {} };
+let currentTab = 'home';
+let stateLoaded = false;
+
+async function loadState(){
+  try{
+    const result = await window.storage.get('planner-state', false);
+    if(result && result.value){
+      state = JSON.parse(result.value);
+    }
+  }catch(e){
+    console.log('No saved state yet, starting fresh.');
+  }
+  stateLoaded = true;
+}
+
+async function saveState(){
+  try{
+    await window.storage.set('planner-state', JSON.stringify(state), false);
+  }catch(e){
+    console.error('Save failed', e);
+  }
+}
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function fmtDateLabel(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function daysUntil(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  const t = new Date(todayStr()+'T00:00:00');
+  return Math.round((d - t) / 86400000);
+}
+
+function priorityColor(p){
+  if(p==='red') return 'var(--coral)';
+  if(p==='yellow') return 'var(--priority-yellow)';
+  return 'var(--priority-blue)';
+}
+
+function getAllUpcomingEntries(){
+  const today = todayStr();
+  const results = [];
+  const entries = state.calendarEntries || {};
+  Object.keys(entries).filter(d=>d>=today).sort().forEach(d=>{
+    (entries[d]||[]).forEach(e=>{ results.push({ date: d, ...e }); });
+  });
+  const priorityOrder = {red:0, yellow:1, blue:2};
+  results.sort((a,b)=>{
+    if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (priorityOrder[a.priority] ?? 3) - (priorityOrder[b.priority] ?? 3);
+  });
+  return results;
+}
+
+function nextExam(){
+  const upcoming = getAllUpcomingEntries();
+  return upcoming.length ? upcoming[0].date : null;
+}
+
+function nextEntryLabel(){
+  const upcoming = getAllUpcomingEntries();
+  if(!upcoming.length) return '';
+  const e = upcoming[0];
+  return `${e.type}${e.label ? ': '+e.label : ''}`;
+}
+
+function hoursToday(){
+  return state.hoursLog[todayStr()] || 0;
+}
+
+let greetingText = '';
+const motivationalQuotes = [
+  "Small steps today, big wins on results day.",
+  "You don't have to feel ready. Just start.",
+  "Progress hides in ordinary days.",
+  "Future you is counting on today's you.",
+  "One page, one problem, one step at a time."
+];
+let cuteMsgText = motivationalQuotes[0];
+function pickCuteMsg(){
+  cuteMsgText = motivationalQuotes[Math.floor(Math.random()*motivationalQuotes.length)];
+}
+
+function pickGreeting(){
+  const name = state.username || 'there';
+  const hour = new Date().getHours();
+  if(hour < 12){
+    greetingText = `Good morning, ${name}! ☀️`;
+    return;
+  }
+  const options = [
+    `Hey ${name}, ready to study?`,
+    `How's it going, ${name}?`,
+    `Good luck with today's session, ${name} 💪`,
+    `What's up, ${name}?`
+  ];
+  greetingText = options[Math.floor(Math.random()*options.length)];
+}
+
+function renderHeader(){
+  const n = nextExam();
+  document.querySelector('.greeting').textContent = greetingText;
+  const cuteMsgEl = document.querySelector('.cute-msg');
+  if(cuteMsgEl) cuteMsgEl.textContent = cuteMsgText;
+  document.getElementById('header-sub').textContent = n
+    ? `${daysUntil(n)} day${daysUntil(n)===1?'':'s'} to ${fmtDateLabel(n)}`
+    : 'Nothing marked yet';
+}
+
+function last7DaysSubjectSummary(){
+  const totals = {};
+  for(let i=0;i<7;i++){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const dayData = (state.subjectDayHours && state.subjectDayHours[dateStr]) || {};
+    Object.keys(dayData).forEach(subj => {
+      totals[subj] = Math.round(((totals[subj]||0) + dayData[subj])*100)/100;
+    });
+  }
+  return totals;
+}
+
+async function getStudyAdvice(){
+  const btn = document.getElementById('advice-btn');
+  if(btn){ btn.textContent = 'Thinking…'; btn.disabled = true; }
+
+  const totals = last7DaysSubjectSummary();
+  const subjectList = Object.keys(totals);
+  const upcomingExam = nextExam();
+
+  if(subjectList.length === 0){
+    state.studyAdvice = "Log a few study sessions in the Tracker first — then I can tell you which subjects need more attention.";
+    await saveState();
+    render();
+    return;
+  }
+
+  const summaryText = subjectList.map(s => `${s}: ${totals[s]}h`).join(', ');
+  const examText = upcomingExam ? `Next exam is ${fmtDateLabel(upcomingExam)} (${daysUntil(upcomingExam)} days away).` : 'No exam date set yet.';
+  const systemText = `You are an AI study advisor for a Matric student. Here is their study time over the last 7 days, per subject: ${summaryText}. ${examText} Give ONE short, specific, actionable insight (max 2 sentences) — point out an imbalance or a subject that's been neglected relative to the others, and suggest what to focus on next. Be direct and concrete, not generic. Reply with ONLY a JSON object, no markdown, in this exact shape: {"advice": "<your insight>"}.`;
+
+  try{
+    const result = await callGemini(systemText, "Give me advice.", null);
+    state.studyAdvice = result.advice || "Keep logging sessions so I can spot patterns.";
+  }catch(e){
+    console.error('Study advice failed', e);
+    const sorted = subjectList.slice().sort((a,b)=>totals[a]-totals[b]);
+    state.studyAdvice = `⚠️ AI unavailable right now — but based on your logged hours, ${sorted[0]} has had the least time (${totals[sorted[0]]}h this week). Might be worth prioritizing.`;
+  }
+  await saveState();
+  render();
+}
+
+function renderProgressRing(hours, goalHours, size){
+  size = size || 84;
+  const radius = size/2 - 9;
+  const circumference = 2*Math.PI*radius;
+  const pct = Math.max(0, Math.min(hours/goalHours, 1));
+  const offset = circumference * (1-pct);
+  const cx = size/2, cy = size/2;
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="var(--line)" stroke-width="8"/>
+      <circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="var(--priority-yellow)" stroke-width="8"
+        stroke-dasharray="${circumference.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}" stroke-linecap="round"
+        transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset 0.6s ease;"/>
+      <text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="17" font-weight="700" fill="#28374A" font-family="IBM Plex Mono, monospace">${hours}h</text>
+    </svg>
+  `;
+}
+
+function renderHome(){
+  const todos = state.todos.filter(t => t.date === todayStr());
+  const doneCount = todos.filter(t=>t.done).length;
+  const allDone = todos.length > 0 && doneCount === todos.length;
+  return `
+    <div class="card" style="display:flex;align-items:flex-start;gap:10px;">
+      <span style="color:var(--amber);flex:0 0 auto;margin-top:2px;">${icon('quote')}</span>
+      <div style="font-size:13px;line-height:1.5;font-style:italic;">${escapeHtml(cuteMsgText)}</div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px;">
+      <div class="card" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 8px;margin-bottom:0;">
+        ${renderProgressRing(hoursToday(), 4, 62)}
+        <div class="tag" style="margin-top:6px;">Study hours</div>
+      </div>
+      <div class="card" onclick="goToTab('calendar')" style="flex:1;cursor:pointer;padding:14px 10px;margin-bottom:0;display:flex;flex-direction:column;justify-content:center;">
+        <div class="tag">Next up</div>
+        ${nextExam() ? `
+          <div style="margin-top:6px;font-size:13px;font-weight:600;line-height:1.3;">${nextEntryLabel()}</div>
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">${fmtDateLabel(nextExam())} · ${daysUntil(nextExam())}d</div>
+        ` : `<div style="margin-top:6px;font-size:12px;color:var(--ink-soft);">Nothing yet — tap to add</div>`}
+      </div>
+    </div>
+    <div class="card" onclick="goToTab('todo')" style="cursor:pointer;">
+      <div class="row">
+        <div class="tag">Today's to-dos (${doneCount}/${todos.length})</div>
+        ${allDone ? '<span style="font-size:12px;font-weight:700;color:var(--priority-yellow);animation:popIn 0.4s ease;">All done!</span>' : ''}
+      </div>
+      ${todos.length === 0
+        ? '<div style="font-size:13px;color:var(--ink-soft);margin-top:6px;">Nothing added for today yet — tap to add some.</div>'
+        : todos.slice(0,4).map(t => `
+          <div class="checkitem">
+            <div class="box ${t.done?'done':''}"></div>
+            <span style="${t.done?'text-decoration:line-through;color:var(--ink-soft);':''}">${escapeHtml(t.text)}</span>
+          </div>`).join('')
+      }
+      ${todos.length > 4 ? '<div style="text-align:center;color:var(--ink-soft);letter-spacing:3px;margin-top:6px;">•••</div>' : ''}
+    </div>
+    <div class="card" onclick="getStudyAdvice()" style="cursor:pointer;">
+      <div class="row">
+        <div class="tag" style="display:flex;align-items:center;gap:6px;"><span style="display:flex;color:var(--amber);">${icon('lightbulb')}</span>AI Study Advice</div>
+        <span style="font-size:11px;color:var(--ink-soft);">${state.studyAdvice ? 'Tap to refresh' : 'Tap for insight'}</span>
+      </div>
+      ${state.studyAdvice ? `<div style="font-size:13px;margin-top:6px;">${escapeHtml(state.studyAdvice)}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderUpcomingList(){
+  const upcoming = getAllUpcomingEntries().slice(0,6);
+  return `
+    <div class="card" style="margin-top:14px;">
+      <div class="tag">Upcoming</div>
+      ${upcoming.length === 0
+        ? '<div style="font-size:12px;color:var(--ink-soft);margin-top:8px;">Nothing upcoming yet — tap a date above to add one</div>'
+        : upcoming.map(e => `
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);">
+            <span style="width:9px;height:9px;border-radius:50%;background:${priorityColor(e.priority)};flex:0 0 auto;"></span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);width:54px;flex:0 0 auto;">${fmtDateLabel(e.date)}</span>
+            <span style="font-size:13px;flex:1;">${escapeHtml(e.type)}${e.label?': '+escapeHtml(e.label):''}</span>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+
+function renderCalendar(){
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const first = new Date(year, month, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const monthName = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  let cells = '';
+  for(let i=0;i<startDow;i++) cells += `<div class="day empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const dayEntries = (state.calendarEntries && state.calendarEntries[dateStr]) || [];
+    const isToday = dateStr === todayStr();
+    let topPriority = null;
+    if(dayEntries.some(e=>e.priority==='red')) topPriority = 'red';
+    else if(dayEntries.some(e=>e.priority==='yellow')) topPriority = 'yellow';
+    else if(dayEntries.some(e=>e.priority==='blue')) topPriority = 'blue';
+    const fillStyle = topPriority ? `background:${priorityColor(topPriority)};color:white;font-weight:700;` : '';
+    cells += `<div class="day ${isToday?'today':''}" style="${fillStyle}" onclick="openDayModal('${dateStr}')">${d}</div>`;
+  }
+
+  return `
+    <div class="card">
+      <div class="tag" style="margin-bottom:10px;">${monthName}</div>
+      <div class="calgrid">
+        <div class="dow">S</div><div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div>
+        ${cells}
+      </div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);text-align:center;">Tap a date to add an exam, test, quiz, or anything else</div>
+    ${renderUpcomingList()}
+    <div id="day-modal-slot"></div>
+  `;
+}
+
+let selectedEntryPriority = 'yellow';
+
+function selectEntryPriority(btn, p){
+  selectedEntryPriority = p;
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.priority-pill').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function openDayModal(dateStr){
+  const entries = (state.calendarEntries && state.calendarEntries[dateStr]) || [];
+  selectedEntryPriority = 'yellow';
+  const slot = document.getElementById('day-modal-slot');
+  slot.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeDayModal()">
+      <div class="modal">
+        <div class="tag">${fmtDateLabel(dateStr)}</div>
+        ${entries.length ? `
+          <div style="margin-top:10px;">
+            ${entries.map(e => `
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);">
+                <span style="width:8px;height:8px;border-radius:50%;background:${priorityColor(e.priority)};flex:0 0 auto;"></span>
+                <span style="font-size:13px;flex:1;">${escapeHtml(e.type)}${e.label?': '+escapeHtml(e.label):''}</span>
+                <span onclick="deleteCalendarEntry('${dateStr}','${e.id}')" style="color:var(--ink-soft);cursor:pointer;padding:0 6px;font-size:16px;">×</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        <div class="tag" style="margin-top:14px;">Add something</div>
+        <input id="entry-type" placeholder="Type (Exam, Quiz, Test, Note...)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+        <input id="entry-label" placeholder="Subject / details" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+        <div class="tag" style="margin-top:10px;">Priority</div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button type="button" onclick="selectEntryPriority(this,'red')" class="priority-pill" style="background:var(--coral);"></button>
+          <button type="button" onclick="selectEntryPriority(this,'yellow')" class="priority-pill selected" style="background:var(--priority-yellow);"></button>
+          <button type="button" onclick="selectEntryPriority(this,'blue')" class="priority-pill" style="background:var(--priority-blue);"></button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" onclick="closeDayModal()">Close</button>
+          <button class="btn primary" onclick="addCalendarEntry('${dateStr}')">Add</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeDayModal(){
+  document.getElementById('day-modal-slot').innerHTML = '';
+  render();
+}
+
+async function addCalendarEntry(dateStr){
+  const typeVal = document.getElementById('entry-type').value.trim() || 'Note';
+  const labelVal = document.getElementById('entry-label').value.trim();
+  if(!state.calendarEntries) state.calendarEntries = {};
+  if(!state.calendarEntries[dateStr]) state.calendarEntries[dateStr] = [];
+  state.calendarEntries[dateStr].push({
+    id: 'entry_'+Date.now()+'_'+Math.floor(Math.random()*10000),
+    type: typeVal,
+    label: labelVal,
+    priority: selectedEntryPriority || 'yellow'
+  });
+  await saveState();
+  openDayModal(dateStr);
+}
+
+async function deleteCalendarEntry(dateStr, entryId){
+  if(state.calendarEntries && state.calendarEntries[dateStr]){
+    state.calendarEntries[dateStr] = state.calendarEntries[dateStr].filter(e=>e.id!==entryId);
+    if(state.calendarEntries[dateStr].length===0) delete state.calendarEntries[dateStr];
+  }
+  await saveState();
+  openDayModal(dateStr);
+}
+
+function renderTodo(){
+  const todos = state.todos.filter(t => t.date === todayStr());
+  const total = todos.length;
+  const doneCount = todos.filter(t=>t.done).length;
+  const pct = total === 0 ? 0 : Math.round((doneCount/total)*100);
+
+  let momentumMsg = 'Add your first task for today';
+  if(total > 0){
+    if(pct === 0) momentumMsg = "Let's begin 💪";
+    else if(pct < 50) momentumMsg = 'Good start, keep going';
+    else if(pct < 100) momentumMsg = 'Halfway there!';
+    else momentumMsg = 'All done for today! 🎉';
+  }
+
+  const groups = {};
+  todos.forEach(t=>{
+    const subj = t.subject || 'General';
+    if(!groups[subj]) groups[subj] = [];
+    groups[subj].push(t);
+  });
+
+  const groupsHtml = Object.keys(groups).map(subj => `
+    <div class="card">
+      <div class="tag">${escapeHtml(subj)}</div>
+      ${groups[subj].map(t => `
+        <div class="checkitem">
+          <div class="box ${t.done?'done':''}" onclick="toggleTodo('${t.id}')" style="cursor:pointer;"></div>
+          ${editingTodoId === t.id ? `
+            <input id="edit-input-${t.id}" value="${escapeHtml(t.text)}" onkeydown="if(event.key==='Enter') saveEditTodo('${t.id}')" style="flex:1;padding:4px 8px;border:1px solid var(--amber);border-radius:8px;font-family:'Nunito',sans-serif;font-size:14px;">
+            <span onclick="saveEditTodo('${t.id}')" style="color:var(--amber);cursor:pointer;padding:0 6px;font-weight:700;">✓</span>
+          ` : `
+            <span style="flex:1;cursor:pointer;${t.done?'text-decoration:line-through;color:var(--ink-soft);':''}" onclick="startEditTodo('${t.id}')">${escapeHtml(t.text)}</span>
+            <span onclick="startEditTodo('${t.id}')" style="color:var(--ink-soft);padding:0 4px;cursor:pointer;display:flex;">${icon('edit')}</span>
+            <span onclick="deleteTodo('${t.id}')" style="color:var(--ink-soft);font-size:16px;padding:0 4px;cursor:pointer;">×</span>
+          `}
+        </div>`).join('')}
+    </div>
+  `).join('');
+
+  return `
+    <div class="card">
+      <div class="tag">Today's progress</div>
+      <div style="background:var(--line);border-radius:20px;height:10px;margin-top:8px;overflow:hidden;">
+        <div style="background:var(--amber);height:100%;width:${pct}%;transition:width 0.3s;"></div>
+      </div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:6px;">${momentumMsg}</div>
+    </div>
+    ${total === 0 ? '' : groupsHtml}
+    <div class="card">
+      <div class="tag">Add a task</div>
+      <input id="new-task-subject" placeholder="Subject (e.g. Physics)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:8px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <input id="new-task-text" placeholder="Task" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:8px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <button class="btn primary" style="width:100%;margin-top:10px;" onclick="addTodo()">Add task</button>
+    </div>
+  `;
+}
+
+let editingTodoId = null;
+
+function startEditTodo(id){
+  editingTodoId = id;
+  render();
+}
+
+async function saveEditTodo(id){
+  const input = document.getElementById('edit-input-'+id);
+  const val = input ? input.value.trim() : '';
+  if(val){
+    const t = state.todos.find(t=>t.id===id);
+    if(t) t.text = val;
+    await saveState();
+  }
+  editingTodoId = null;
+  render();
+}
+
+async function toggleTodo(id){
+  const t = state.todos.find(t=>t.id===id);
+  if(t){ t.done = !t.done; await saveState(); render(); }
+}
+
+async function deleteTodo(id){
+  state.todos = state.todos.filter(t=>t.id!==id);
+  await saveState();
+  render();
+}
+
+async function addTodo(){
+  const subjInput = document.getElementById('new-task-subject');
+  const textInput = document.getElementById('new-task-text');
+  const subject = subjInput.value.trim() || 'General';
+  const text = textInput.value.trim();
+  if(!text) return;
+  state.todos.push({ id: 'todo_'+Date.now()+'_'+Math.floor(Math.random()*1000), text, subject, date: todayStr(), done: false });
+  await saveState();
+  render();
+}
+
+let timerRunning = false;
+let timerSubject = '';
+let timerStartMs = null;
+let timerIntervalId = null;
+let aiEditEnabled = false;
+
+function toggleAiEdit(){
+  aiEditEnabled = !aiEditEnabled;
+  render();
+}
+
+function renderTracker(){
+  const weekData = getLast7DaysHours();
+  const maxHour = Math.max(1, ...weekData.map(d=>d.hours));
+  const forest = state.forestTrees || [];
+
+  return `
+    <div class="card">
+      <div class="tag">🌱 Start a focus session</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin:6px 0 10px;">Tap Start to go full-screen and watch your tree grow while you study.</div>
+      <input id="tracker-subject" placeholder="Subject (e.g. Physics)" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <button class="btn primary" style="width:100%;margin-top:10px;" onclick="startTimer()">Start</button>
+    </div>
+    <div class="card">
+      <div class="tag">This week</div>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:90px;margin-top:12px;">
+        ${weekData.map(d => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+            <div style="width:100%;border-radius:4px 4px 0 0;background:${d.isToday?'var(--coral)':'var(--ink-soft)'};height:${Math.max(4,(d.hours/maxHour)*70)}px;"></div>
+            <div style="font-size:9px;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace;">${d.label}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card" onclick="openForestView()" style="cursor:pointer;">
+      <div class="tag">Your forest (${forest.length} session${forest.length===1?'':'s'}) — tap to view</div>
+      <div style="overflow-x:auto;margin-top:10px;">
+        ${forest.length === 0
+          ? '<div style="font-size:12px;color:var(--ink-soft);font-family:\'IBM Plex Mono\',monospace;padding:6px 0;">Complete a session to plant your first tree</div>'
+          : `<div style="display:flex;align-items:flex-end;">${forest.map(t=>`<div title="${escapeHtml(t.subject)} — ${t.date}">${renderTreeSprite(t.stage!==undefined?t.stage:3, 4)}</div>`).join('')}</div>
+             <div>${renderGrassStrip(Math.max(24, forest.length*3), 4)}</div>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+function getLast7DaysHours(){
+  const result = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    result.push({
+      label: d.toLocaleDateString('en-US',{weekday:'narrow'}),
+      hours: Math.round((state.hoursLog[dateStr]||0)*10)/10,
+      isToday: dateStr === todayStr()
+    });
+  }
+  return result;
+}
+
+const PIXT='#5A3A26', PIXL1='#5FA85A', PIXL2='#3F7D3F', PIXL3='#2A5A2A', PIXG='#7FBF6A', PIXY='#E8B94C', PIXP='#E8738F', PIXB='#3A2E22', PIXW=null;
+
+const treeStages = [
+  [ // stage 0: seed
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXL1,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXW,PIXW,PIXW,PIXW],
+  ],
+  [ // stage 1: sprout
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXL1,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXL1,PIXL1,PIXL1,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+  ],
+  [ // stage 2: small tree
+    [PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXL2,PIXL2,PIXW,PIXW,PIXW],
+    [PIXW,PIXL1,PIXL1,PIXL1,PIXL1,PIXL1,PIXW,PIXW],
+    [PIXW,PIXL1,PIXL2,PIXL1,PIXL2,PIXL1,PIXW,PIXW],
+    [PIXW,PIXW,PIXL1,PIXL1,PIXL1,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXT,PIXT,PIXT,PIXT,PIXW,PIXW],
+  ],
+  [ // stage 3: full tree
+    [PIXW,PIXL3,PIXL2,PIXL2,PIXL2,PIXL2,PIXL3,PIXW],
+    [PIXL1,PIXL1,PIXY,PIXL1,PIXL1,PIXY,PIXL1,PIXL1],
+    [PIXL1,PIXL2,PIXL1,PIXL3,PIXL2,PIXL1,PIXL2,PIXL1],
+    [PIXP,PIXL1,PIXL1,PIXY,PIXL1,PIXL1,PIXP,PIXW],
+    [PIXW,PIXL3,PIXL1,PIXL1,PIXL1,PIXL3,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXW,PIXT,PIXT,PIXW,PIXW,PIXW],
+    [PIXW,PIXW,PIXT,PIXT,PIXT,PIXT,PIXW,PIXW],
+  ],
+];
+
+const grassUnitA = [
+  [PIXW,PIXW,PIXW],
+  [PIXW,PIXL1,PIXW],
+  [PIXL2,PIXL1,PIXL2],
+  [PIXG,PIXG,PIXG],
+];
+const grassUnitB = [
+  [PIXW,PIXL1,PIXW],
+  [PIXL1,PIXL2,PIXL1],
+  [PIXL2,PIXL1,PIXL2],
+  [PIXG,PIXG,PIXG],
+];
+const flowerUnit = [
+  [PIXW,PIXP,PIXW],
+  [PIXP,PIXY,PIXP],
+  [PIXW,PIXL2,PIXW],
+  [PIXG,PIXG,PIXG],
+];
+
+const butterflySprite = [
+  [PIXW,PIXP,PIXW,PIXP,PIXW],
+  [PIXP,PIXP,PIXB,PIXP,PIXP],
+  [PIXW,PIXP,PIXB,PIXP,PIXW],
+  [PIXW,PIXW,PIXB,PIXW,PIXW],
+];
+
+function pixelGrid(matrix, size){
+  const cols = matrix[0].length;
+  let html = `<div style="display:grid;grid-template-columns:repeat(${cols}, ${size}px);grid-auto-rows:${size}px;">`;
+  matrix.forEach(row=>{
+    row.forEach(color=>{
+      html += `<div style="background:${color||'transparent'};width:${size}px;height:${size}px;"></div>`;
+    });
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderTreeSprite(stage, size){
+  return pixelGrid(treeStages[Math.min(Math.max(stage,0), treeStages.length-1)], size||8);
+}
+
+function renderGrassStrip(units, size){
+  let html = '<div style="display:flex;">';
+  for(let i=0;i<units;i++){
+    html += pixelGrid(i%3===0 ? grassUnitB : grassUnitA, size);
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderGrassStripFancy(units, size){
+  let html = '<div style="display:flex;">';
+  for(let i=0;i<units;i++){
+    let unit = i%7===3 ? flowerUnit : (i%3===0 ? grassUnitB : grassUnitA);
+    html += pixelGrid(unit, size);
+  }
+  html += '</div>';
+  return html;
+}
+
+function escapeJs(str){
+  return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+function showTreeDetail(subject, date, stage){
+  const labels = ['Just started 🌱','Getting there 🌿','Growing well 🌳','Fully grown 🌲'];
+  const toast = document.getElementById('tree-toast');
+  if(!toast) return;
+  toast.innerHTML = `
+    <div style="position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:white;padding:10px 18px;border-radius:20px;font-size:12px;white-space:nowrap;box-shadow:0 4px 14px rgba(74,55,40,0.35);z-index:50;animation:popIn 0.25s ease;">
+      <b>${escapeHtml(subject)}</b> · ${fmtDateLabel(date)} · ${labels[stage] || ''}
+    </div>
+  `;
+  clearTimeout(window._treeToastTimer);
+  window._treeToastTimer = setTimeout(()=>{ if(toast) toast.innerHTML=''; }, 2200);
+}
+
+function renderForestView(){
+  const forest = state.forestTrees || [];
+  const treesHtml = forest.length === 0
+    ? '<div class="tag">No trees planted yet — finish a session first 🌱</div>'
+    : forest.map(t=>`<div onclick="showTreeDetail('${escapeJs(t.subject)}','${t.date}',${t.stage!==undefined?t.stage:3})" style="cursor:pointer;">${renderTreeSprite(t.stage!==undefined?t.stage:3, 8)}</div>`).join('');
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 4px 0;">
+      <div class="tag">${forest.length} tree${forest.length===1?'':'s'} grown</div>
+      <button onclick="closeForestView()" style="background:none;border:1px solid var(--line);color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 14px;border-radius:20px;cursor:pointer;">Close</button>
+    </div>
+    <div style="position:relative;min-height:52vh;display:flex;flex-direction:column;justify-content:flex-end;border-radius:18px;overflow:hidden;background:linear-gradient(to bottom, #F6D9B8 0%, #EDE3C8 55%, var(--paper) 100%);">
+      <div style="position:absolute;top:6%;right:12%;width:36px;height:36px;border-radius:50%;background:var(--priority-yellow);box-shadow:0 0 26px rgba(212,162,76,0.5);"></div>
+      <div style="position:absolute;top:10%;left:8%;width:50px;height:17px;background:white;border-radius:20px;opacity:0.7;"></div>
+      <div style="position:absolute;top:18%;left:20%;width:30px;height:12px;background:white;border-radius:20px;opacity:0.55;"></div>
+      <div style="position:absolute;bottom:24px;left:-10%;width:55%;height:40px;background:var(--amber);opacity:0.20;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;bottom:24px;right:-10%;width:65%;height:55px;background:var(--amber);opacity:0.14;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;left:20%;top:6%;animation:flutter 5s ease-in-out infinite;">${pixelGrid(butterflySprite,5)}</div>
+      <div style="position:absolute;left:60%;top:16%;animation:flutter 7s ease-in-out infinite reverse;">${pixelGrid(butterflySprite,4)}</div>
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:center;gap:2px;padding:0 4px;position:relative;">
+        ${treesHtml}
+      </div>
+    </div>
+    <div id="tree-toast"></div>
+    <div style="text-align:center;margin-top:2px;font-size:11px;color:var(--ink-soft);">Tap any tree to see its details</div>
+
+    <div style="overflow:hidden;">${renderGrassStripFancy(30, 7)}</div>
+    <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-soft);">Every tree here is a session you actually showed up for 🌿</div>
+  `;
+}
+
+function openForestView(){
+  document.querySelector('header').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+  renderForestView();
+}
+
+function closeForestView(){
+  document.querySelector('header').style.display = '';
+  document.querySelector('.bottom-nav').style.display = '';
+  render();
+}
+
+function growthStage(elapsedMs){
+  const min = elapsedMs/60000;
+  if(min < 5) return 0;
+  if(min < 20) return 1;
+  if(min < 40) return 2;
+  return 3;
+}
+
+function renderFocusMode(){
+  const elapsed = Date.now() - timerStartMs;
+  const stage = growthStage(elapsed);
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;justify-content:flex-end;padding:10px 4px 0;">
+      <button onclick="stopTimer()" style="background:none;border:1px solid var(--line);color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 14px;border-radius:20px;cursor:pointer;">Stop</button>
+    </div>
+    <div style="min-height:58vh;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(to bottom, #F6D9B8 0%, #EDE3C8 65%, var(--paper) 100%);">
+      <div style="position:absolute;top:8%;right:14%;width:34px;height:34px;border-radius:50%;background:var(--priority-yellow);box-shadow:0 0 24px rgba(212,162,76,0.5);"></div>
+      <div style="position:absolute;top:12%;left:10%;width:46px;height:16px;background:white;border-radius:20px;opacity:0.85;"></div>
+      <div style="position:absolute;top:20%;left:24%;width:28px;height:11px;background:white;border-radius:20px;opacity:0.7;"></div>
+      <div style="position:absolute;bottom:20px;left:-8%;width:55%;height:36px;background:var(--amber);opacity:0.20;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;bottom:20px;right:-8%;width:65%;height:48px;background:var(--amber);opacity:0.14;border-radius:50% 50% 0 0;"></div>
+      <div style="position:absolute;left:50%;top:10%;animation:flutter 6s ease-in-out infinite;">${pixelGrid(butterflySprite,5)}</div>
+      <div id="focus-tree" style="position:relative;">${renderTreeSprite(stage, 11)}</div>
+      <div id="focus-timer" style="font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:600;position:relative;">${formatElapsed(elapsed)}</div>
+      <div class="tag" style="position:relative;">Growing — ${escapeHtml(timerSubject)}</div>
+    </div>
+    <div style="overflow:hidden;">${renderGrassStrip(24, 7)}</div>
+  `;
+}
+
+function formatElapsed(ms){
+  const totalSec = Math.floor(ms/1000);
+  const h = Math.floor(totalSec/3600);
+  const m = Math.floor((totalSec%3600)/60);
+  const s = totalSec%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+let wakeLock = null;
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  }catch(e){
+    console.log('Wake lock unavailable', e);
+  }
+}
+function releaseWakeLock(){
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async ()=>{
+  if(timerRunning && document.visibilityState === 'visible'){
+    await requestWakeLock();
+  }
+});
+
+async function startTimer(){
+  const input = document.getElementById('tracker-subject');
+  const subj = input ? input.value.trim() : '';
+  timerSubject = subj || 'General';
+  timerRunning = true;
+  timerStartMs = Date.now();
+  await requestWakeLock();
+  render();
+  timerIntervalId = setInterval(()=>{
+    if(!timerRunning) return;
+    const elapsed = Date.now()-timerStartMs;
+    const timerEl = document.getElementById('focus-timer');
+    const treeEl = document.getElementById('focus-tree');
+    if(timerEl) timerEl.textContent = formatElapsed(elapsed);
+    if(treeEl) treeEl.innerHTML = renderTreeSprite(growthStage(elapsed), 11);
+  }, 1000);
+}
+
+async function stopTimer(){
+  clearInterval(timerIntervalId);
+  const elapsedMs = Date.now()-timerStartMs;
+  const hours = elapsedMs/3600000;
+  const dateStr = todayStr();
+  state.hoursLog[dateStr] = Math.round(((state.hoursLog[dateStr]||0)+hours)*100)/100;
+  if(!state.subjectDayHours) state.subjectDayHours = {};
+  if(!state.subjectDayHours[dateStr]) state.subjectDayHours[dateStr] = {};
+  state.subjectDayHours[dateStr][timerSubject] = Math.round(((state.subjectDayHours[dateStr][timerSubject]||0)+hours)*100)/100;
+  if(!state.forestTrees) state.forestTrees = [];
+  state.forestTrees.push({ date: dateStr, subject: timerSubject, stage: growthStage(elapsedMs) });
+  timerRunning = false;
+  timerSubject = '';
+  timerStartMs = null;
+  releaseWakeLock();
+  await saveState();
+  render();
+}
+
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function buildPlanSummary(){
+  const todos = state.todos.filter(t=>t.date===todayStr() && !t.done);
+  if(todos.length === 0) return "You're all caught up for today! 🎉 Tell me if anything changes and I'll adjust your plan.";
+  const list = todos.map(t=>`${t.subject}: ${t.text}`).join(', ');
+  return `Here's today's plan: ${list}. Let me know if something comes up and I'll adjust it.`;
+}
+
+function moveTodosToTomorrow(){
+  const today = todayStr();
+  const tomorrow = addDays(today, 1);
+  const pending = state.todos.filter(t => t.date === today && !t.done);
+  pending.forEach(t => { t.date = tomorrow; });
+  return pending;
+}
+
+function rescheduleToday(){
+  const pending = moveTodosToTomorrow();
+  if(pending.length === 0){
+    return "Looks like everything for today's already done — nothing to move!";
+  }
+  const list = pending.map(t=>t.text).join(', ');
+  return `No worries — I moved ${pending.length} task${pending.length===1?'':'s'} (${list}) to tomorrow. You're still on track.`;
+}
+
+function generateReply(text){
+  const t = text.toLowerCase();
+  if(/(didn.?t study|no time|couldn.?t study|missed|too busy|busy today|out of time)/.test(t)){
+    return rescheduleToday();
+  }
+  if(/(plan|today|schedule)/.test(t)){
+    return buildPlanSummary();
+  }
+  if(/(tired|don.?t want|unmotivated|give up|can.?t do this|exhausted)/.test(t)){
+    return "That's okay — even a short 15-minute push counts. Want me to trim today's plan down to just the essentials?";
+  }
+  return "Got it 👍 Let me know if you want me to move anything around in your plan.";
+}
+
+// Your Cloudflare Worker URL — the API key lives only on the server, never here.
+const AI_WORKER_URL = "https://jolly-frost-7e96.sameenzahid67.workers.dev/";
+
+const aiTones = {
+  normal:      "Keep a friendly, plain, straightforward tone.",
+  encouraging: "Be warm and encouraging, like a supportive tutor — but don't overdo it or be sappy.",
+  direct:      "Be brief and to the point, minimal fluff, just the useful part."
+};
+let currentAiTone = 'normal';
+let pendingChatImage = null; // { base64, mimeType }
+
+function setAiTone(tone){
+  currentAiTone = tone;
+  render();
+}
+
+function scrollChatBottom(){
+  const c = document.getElementById('content');
+  if(c) c.scrollTop = c.scrollHeight;
+}
+
+async function callGeminiOnce(model, systemText, userText, imagePart){
+  const response = await fetch(AI_WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      systemText,
+      userText: userText || "Here's an image.",
+      imageBase64: imagePart ? imagePart.base64 : null,
+      imageMime: imagePart ? imagePart.mimeType : null
+    })
+  });
+  const data = await response.json();
+  const raw = data?.choices?.[0]?.message?.content;
+  if(!raw) throw new Error(data?.error?.message || 'No response from AI');
+  const clean = raw.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+const TEXT_MODEL_CHAIN = ["qwen/qwen3.6-27b", "openai/gpt-oss-120b"];
+const VISION_MODEL_CHAIN = ["llama-3.2-90b-vision-preview", "llama-3.2-11b-vision-preview"];
+
+async function callGemini(systemText, userText, imagePart){
+  const chain = imagePart ? VISION_MODEL_CHAIN : TEXT_MODEL_CHAIN;
+  let lastError = null;
+  for(const model of chain){
+    try{
+      return await callGeminiOnce(model, systemText, userText, imagePart);
+    }catch(e){
+      lastError = e;
+      // Move straight to the next model — no repeat attempts on the same one, to conserve free-tier quota.
+    }
+  }
+  throw lastError || new Error('All AI models unavailable');
+}
+
+async function callAI(userMessage, pendingTodos, imagePart){
+  const todosSummary = pendingTodos.length
+    ? pendingTodos.map(t=>`${t.subject}: ${t.text}`).join('; ')
+    : 'No tasks left for today';
+  const toneInstruction = aiTones[currentAiTone] || aiTones.normal;
+  const systemText = `You are a friendly AI study planner assistant inside a student's app. ${toneInstruction} Today's pending tasks: ${todosSummary}. If the student attaches an image of a problem (math, science, anything), solve it accurately and show your work briefly. Reply with ONLY a JSON object, no markdown, no code fences, no extra text, in this exact shape: {"reply": "<your reply to the student>", "reschedule": true or false}. Set "reschedule" to true only if the student is saying they missed today, couldn't study, or ran out of time and their pending tasks should move to tomorrow. Otherwise false.`;
+  return await callGemini(systemText, userMessage, imagePart);
+}
+
+function handleImagePick(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const base64 = reader.result.split(',')[1];
+    pendingChatImage = { base64, mimeType: file.type, name: file.name };
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPendingImage(){
+  pendingChatImage = null;
+  render();
+}
+
+let showTimetableForm = false;
+function toggleTimetableForm(){
+  showTimetableForm = !showTimetableForm;
+  render();
+}
+
+async function generateTimetable(subjects, examDate, hoursPerDay){
+  const today = todayStr();
+  const systemText = `You are an AI study timetable generator for a Matric student. Today is ${today}. Their exam is on ${examDate}. They have about ${hoursPerDay} hour(s) available per day to study. Subjects to cover: ${subjects.join(', ')}. Distribute short, specific study sessions across the days from today up to and including the exam date, covering all subjects reasonably, giving earlier days more breadth and later days more revision/practice. Keep each day to 1-3 sessions total, roughly matching the daily hours given. Reply with ONLY a JSON object, no markdown, no extra text, in this exact shape: {"plan": [{"date": "YYYY-MM-DD", "subject": "<subject>", "task": "<short specific task>"}]}. Never include a date after ${examDate}.`;
+  const result = await callGemini(systemText, "Generate my timetable.", null);
+  return Array.isArray(result.plan) ? result.plan : [];
+}
+
+async function submitTimetableForm(){
+  const subjInput = document.getElementById('tt-subjects').value.trim();
+  const examDateInput = document.getElementById('tt-examdate').value;
+  const hoursInput = parseFloat(document.getElementById('tt-hours').value) || 1;
+  if(!subjInput || !examDateInput) return;
+  const subjects = subjInput.split(',').map(s=>s.trim()).filter(Boolean);
+
+  const btn = document.getElementById('tt-generate-btn');
+  if(btn){ btn.textContent = 'Generating…'; btn.disabled = true; }
+
+  try{
+    const plan = await generateTimetable(subjects, examDateInput, hoursInput);
+    plan.forEach(item => {
+      if(!item.date || !item.subject || !item.task) return;
+      state.todos.push({
+        id: 'todo_'+Date.now()+'_'+Math.floor(Math.random()*10000),
+        text: item.task,
+        subject: item.subject,
+        date: item.date,
+        done: false
+      });
+    });
+    if(!state.calendarEntries) state.calendarEntries = {};
+    if(!state.calendarEntries[examDateInput]) state.calendarEntries[examDateInput] = [];
+    const alreadyMarked = state.calendarEntries[examDateInput].some(e=>e.type==='Exam');
+    if(!alreadyMarked){
+      state.calendarEntries[examDateInput].push({
+        id: 'entry_'+Date.now()+'_'+Math.floor(Math.random()*10000),
+        type: 'Exam',
+        label: subjects.join(', '),
+        priority: 'red'
+      });
+    }
+    if(!state.chatLog) state.chatLog = [];
+    state.chatLog.push({role:'bot', text: `Built your timetable — ${plan.length} sessions added across your Calendar and To-Do, running up to your ${fmtDateLabel(examDateInput)} exam.`});
+    showTimetableForm = false;
+    await saveState();
+    render();
+  }catch(e){
+    console.error('Timetable generation failed', e);
+    if(!state.chatLog) state.chatLog = [];
+    state.chatLog.push({role:'bot', text: '⚠️ Could not generate the timetable right now: '+(e.message||e)});
+    await saveState();
+    render();
+  }
+}
+
+function renderChat(){
+  if(!state.chatLog) state.chatLog = [];
+  if(state.chatLog.length === 0){
+    state.chatLog.push({role:'bot', text: buildPlanSummary()});
+  }
+  const bubbles = state.chatLog.map(m => `
+    <div class="chatbubble ${m.role}">
+      ${m.image ? `<img src="data:${m.image.mimeType};base64,${m.image.base64}" style="max-width:100%;border-radius:10px;display:block;margin-bottom:${m.text && m.text!=='(sent an image)'?'6px':'0'};">` : ''}
+      ${(!m.image || (m.text && m.text!=='(sent an image)')) ? escapeHtml(m.text) : ''}
+    </div>
+  `).join('');
+  const toneOptions = [
+    {id:'normal', label:'Normal'},
+    {id:'encouraging', label:'Encouraging'},
+    {id:'direct', label:'Direct'}
+  ];
+  const tonePills = toneOptions.map(t => `
+    <button onclick="setAiTone('${t.id}')" style="border:1px solid ${currentAiTone===t.id?'var(--ink)':'var(--line)'};background:${currentAiTone===t.id?'var(--ink)':'transparent'};color:${currentAiTone===t.id?'white':'var(--ink-soft)'};border-radius:20px;padding:5px 12px;font-size:11px;margin-right:6px;cursor:pointer;">${t.label}</button>
+  `).join('');
+
+  return `
+    <div class="card" onclick="toggleTimetableForm()" style="cursor:pointer;">
+      <div class="row">
+        <div class="tag">📅 AI Timetable Generator</div>
+        <span style="color:var(--ink-soft);">${showTimetableForm?'▲':'▼'}</span>
+      </div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">Give it your subjects + exam date and it builds your first plan</div>
+    </div>
+    ${showTimetableForm ? `
+    <div class="card" onclick="event.stopPropagation()">
+      <div class="tag">Subjects (comma separated)</div>
+      <input id="tt-subjects" placeholder="Physics, Chemistry, Math" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <div class="tag" style="margin-top:10px;">Exam date</div>
+      <input id="tt-examdate" type="date" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <div class="tag" style="margin-top:10px;">Hours available per day</div>
+      <input id="tt-hours" type="number" min="1" max="12" value="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <button id="tt-generate-btn" class="btn primary" style="width:100%;margin-top:12px;" onclick="submitTimetableForm()">Generate my timetable</button>
+    </div>` : ''}
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="tag">Let AI edit my schedule</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">Off by default — turn on only when you want changes applied</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:40px;height:22px;flex:0 0 auto;">
+        <input type="checkbox" id="ai-edit-toggle" ${aiEditEnabled?'checked':''} onchange="toggleAiEdit()" style="opacity:0;width:0;height:0;">
+        <span style="position:absolute;inset:0;background:${aiEditEnabled?'var(--ink)':'var(--line)'};border-radius:20px;transition:.2s;pointer-events:none;"></span>
+        <span style="position:absolute;top:3px;left:${aiEditEnabled?'21px':'3px'};width:16px;height:16px;background:white;border-radius:50%;transition:.2s;pointer-events:none;"></span>
+      </label>
+    </div>
+    <div style="margin-bottom:10px;">${tonePills}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:40vh;">
+      ${bubbles}
+    </div>
+    ${pendingChatImage ? `
+      <div style="display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin-top:8px;font-size:11px;color:var(--ink-soft);">
+        📎 ${escapeHtml(pendingChatImage.name)} <span onclick="clearPendingImage()" style="margin-left:auto;cursor:pointer;">✕</span>
+      </div>` : ''}
+    <div style="position:sticky;bottom:0;display:flex;gap:8px;background:var(--white);padding-top:10px;align-items:center;">
+      <label style="cursor:pointer;flex:0 0 auto;font-size:18px;color:var(--ink-soft);">
+        📷<input type="file" accept="image/*" style="display:none;" onchange="handleImagePick(this)">
+      </label>
+      <input id="chat-input" placeholder="Tell me what's going on..." onkeydown="if(event.key==='Enter') sendChat()" style="flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:20px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <button class="btn primary" style="flex:0 0 auto;padding:10px 18px;border-radius:20px;" onclick="sendChat()">Send</button>
+    </div>
+  `;
+}
+
+async function sendChat(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text && !pendingChatImage) return;
+  input.value = '';
+  const imageToSend = pendingChatImage;
+  pendingChatImage = null;
+  state.chatLog.push({
+    role:'user',
+    text: text || '(sent an image)',
+    image: imageToSend ? { base64: imageToSend.base64, mimeType: imageToSend.mimeType } : null
+  });
+  state.chatLog.push({role:'bot', text:'…', thinking:true});
+  render();
+  scrollChatBottom();
+
+  const pendingTodos = state.todos.filter(t=>t.date===todayStr() && !t.done);
+  let result;
+  let debugMsg = null;
+  try{
+    if(AI_WORKER_URL.startsWith('PASTE_')) throw new Error('AI Worker not set up yet');
+    result = await callAI(text, pendingTodos, imageToSend);
+  }catch(e){
+    console.error('AI call failed, using offline fallback', e);
+    debugMsg = (e && e.message) ? e.message : String(e);
+    const fallbackReply = imageToSend
+      ? "I couldn't reach the AI to look at that image just now (connection issue) — give it a moment and try sending it again."
+      : generateReply(text);
+    result = { reply: fallbackReply, reschedule: false };
+  }
+
+  state.chatLog = state.chatLog.filter(m => !m.thinking);
+  if(debugMsg){
+    state.chatLog.push({role:'bot', text: '⚠️ debug: '+debugMsg});
+  }
+  if(result.reschedule){
+    if(aiEditEnabled){
+      moveTodosToTomorrow();
+    } else {
+      result.reply += ' (Flip the toggle above if you want me to actually move things — right now I only chatted, nothing changed.)';
+    }
+  }
+  state.chatLog.push({role:'bot', text: result.reply});
+  await saveState();
+  render();
+  scrollChatBottom();
+}
+
+function renderPlaceholder(label){
+  return `<div class="placeholder">🔧<br>${label}<br>— building this next —</div>`;
+}
+
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render(){
+  if(timerRunning){
+    document.querySelector('header').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+    renderFocusMode();
+    return;
+  }
+  document.querySelector('header').style.display = '';
+  document.querySelector('.bottom-nav').style.display = '';
+  renderHeader();
+  const content = document.getElementById('content');
+  if(currentTab === 'home') content.innerHTML = renderHome();
+  else if(currentTab === 'calendar') content.innerHTML = renderCalendar();
+  else if(currentTab === 'todo') content.innerHTML = renderTodo();
+  else if(currentTab === 'tracker') content.innerHTML = renderTracker();
+  else if(currentTab === 'chat') content.innerHTML = renderChat();
+  else if(currentTab === 'settings') content.innerHTML = renderSettings();
+  content.style.animation = 'none';
+  void content.offsetHeight;
+  content.style.animation = 'fadeInUp 0.28s ease';
+
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.tab === currentTab);
+  });
+}
+
+const iconSvgs = {
+  home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>',
+  calendar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  todo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l2.5 2.5L16 9"/></svg>',
+  tracker: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M10 2h4"/></svg>',
+  chat: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-4 4V5a2 2 0 012-2h13a2 2 0 012 2z"/></svg>',
+  settings: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+  lightbulb: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 2a7 7 0 00-4 12.7c.5.5.8 1.2.8 1.9v.4h6.4v-.4c0-.7.3-1.4.8-1.9A7 7 0 0012 2z"/></svg>',
+  quote: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7.17 6A5.17 5.17 0 002 11.17V18h6.83v-6.83H5.66c0-1.94 1.57-3.5 3.5-3.5V6H7.17zm9.66 0A5.17 5.17 0 0011.66 11.17V18h6.83v-6.83h-3.17c0-1.94 1.57-3.5 3.5-3.5V6h-1.99z"/></svg>',
+  edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+};
+function icon(name){ return iconSvgs[name] || ''; }
+
+function sidebarLink(tab, iconName, label){
+  const active = currentTab === tab;
+  return `<button onclick="goToTab('${tab}'); closeSidebar();" style="display:flex;align-items:center;gap:12px;background:${active?'var(--paper)':'none'};border:none;text-align:left;padding:12px 20px;font-size:14px;color:var(--ink);cursor:pointer;font-weight:${active?'700':'400'};width:100%;">
+    <span style="display:flex;color:${active?'var(--amber)':'var(--ink-soft)'};">${icon(iconName)}</span>${label}
+  </button>`;
+}
+
+function openSidebar(){
+  document.getElementById('sidebar-slot').innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeSidebar()" style="justify-content:flex-start;">
+      <div style="background:var(--white);width:78%;max-width:280px;height:100%;padding:20px 0;display:flex;flex-direction:column;animation:slideIn 0.25s ease;">
+        <div style="padding:0 20px 16px;border-bottom:1px solid var(--line);margin-bottom:8px;">
+          <div style="font-weight:700;font-size:16px;">Glade</div>
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">Hi, ${escapeHtml(state.username||'there')}</div>
+        </div>
+        ${sidebarLink('settings','settings','Settings')}
+      </div>
+    </div>
+  `;
+}
+
+function closeSidebar(){
+  document.getElementById('sidebar-slot').innerHTML = '';
+}
+
+async function saveUsernameFromSettings(){
+  const val = document.getElementById('settings-username').value.trim();
+  if(!val) return;
+  state.username = val;
+  pickGreeting();
+  await saveState();
+  render();
+}
+
+function renderSettings(){
+  return `
+    <div class="card">
+      <div class="tag">Your name</div>
+      <input id="settings-username" value="${escapeHtml(state.username||'')}" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:12px;margin-top:6px;font-family:'Nunito',sans-serif;font-size:13px;">
+      <button class="btn primary" style="width:100%;margin-top:10px;" onclick="saveUsernameFromSettings()">Save name</button>
+    </div>
+    <div class="card">
+      <div class="tag">Tutorial</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;">Replay the quick walkthrough of the app's features.</div>
+      <button class="btn ghost" style="width:100%;margin-top:10px;" onclick="openTutorial(false)">Replay tutorial</button>
+    </div>
+    <div class="card">
+      <div class="tag">About Glade</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:4px;line-height:1.6;">A study planner built for Matric students — AI-powered planning, a calendar with priorities, and a growing pixel forest to keep you motivated.</div>
+    </div>
+  `;
+}
+
+function goToTab(tab){
+  currentTab = tab;
+  render();
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentTab = btn.dataset.tab;
+    render();
+  });
+});
+
+function showOnboarding(){
+  document.querySelector('header').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+  document.getElementById('content').innerHTML = `
+    <div style="min-height:65vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px;">Welcome 👋</div>
+      <div class="tag" style="margin-bottom:18px;">What should we call you?</div>
+      <input id="username-input" placeholder="Your name" style="width:80%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:15px;text-align:center;font-family:'Nunito',sans-serif;">
+      <button class="btn primary" style="margin-top:16px;width:80%;flex:none;" onclick="submitUsername()">Let's go</button>
+    </div>
+  `;
+  document.getElementById('username-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') submitUsername();
+  });
+}
+
+const tutorialSlides = [
+  { icon:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>', title:'Home', text:'A quick glance at your day — today\'s study hours, a preview of your to-dos, and what\'s coming up next.' },
+  { icon:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>', title:'Calendar', text:'Tap any date to add exams, tests, or quizzes, and mark how important each one is with a priority color.' },
+  { icon:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12l2.5 2.5L16 9"/></svg>', title:'To-Do', text:'Add tasks grouped by subject. Check them off and watch the progress bar fill up as you go.' },
+  { icon:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M10 2h4"/></svg>', title:'Tracker', text:'Start a focus session and the screen goes quiet — just you and a little tree that grows as you study. Every finished session joins your forest.' },
+  { icon:'<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H8l-4 4V5a2 2 0 012-2h13a2 2 0 012 2z"/></svg>', title:'AI Planner', text:'Chat about your day — ask for your plan, or tell it if you missed studying. Flip the toggle on if you want it to actually adjust your schedule.' },
+];
+let tutorialIndex = 0;
+
+function openTutorial(isFirstTime){
+  document.querySelector('.bottom-nav').style.display = 'none';
+  renderTutorialSlide(isFirstTime);
+}
+
+function renderTutorialSlide(isFirstTime){
+  const s = tutorialSlides[tutorialIndex];
+  const dots = tutorialSlides.map((_,i)=>`<span style="width:6px;height:6px;border-radius:50%;background:${i===tutorialIndex?'var(--ink)':'var(--line)'};display:inline-block;margin:0 3px;transition:background 0.2s ease;"></span>`).join('');
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div id="tutorial-slide" style="min-height:60vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px;padding:0 8px;">
+      <div style="color:var(--ink);">${s.icon}</div>
+      <div style="font-size:19px;font-weight:700;">${s.title}</div>
+      <div style="font-size:13px;color:var(--ink-soft);line-height:1.6;max-width:320px;">${s.text}</div>
+      <div style="margin-top:6px;">${dots}</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:0 4px;">
+      ${tutorialIndex > 0 ? '<button class="btn ghost" onclick="prevTutorialSlide('+isFirstTime+')">Back</button>' : `<button class="btn ghost" onclick="finishTutorial(${isFirstTime})">Skip</button>`}
+      ${tutorialIndex < tutorialSlides.length-1
+        ? `<button class="btn primary" onclick="nextTutorialSlide(${isFirstTime})">Next</button>`
+        : `<button class="btn primary" onclick="finishTutorial(${isFirstTime})">Get started</button>`}
+    </div>
+  `;
+  const slideEl = document.getElementById('tutorial-slide');
+  if(slideEl){
+    slideEl.style.animation = 'none';
+    void slideEl.offsetHeight;
+    slideEl.style.animation = 'fadeInUp 0.3s ease';
+  }
+}
+
+function nextTutorialSlide(isFirstTime){
+  tutorialIndex = Math.min(tutorialIndex+1, tutorialSlides.length-1);
+  renderTutorialSlide(isFirstTime);
+}
+
+function prevTutorialSlide(isFirstTime){
+  tutorialIndex = Math.max(tutorialIndex-1, 0);
+  renderTutorialSlide(isFirstTime);
+}
+
+async function finishTutorial(isFirstTime){
+  tutorialIndex = 0;
+  document.querySelector('.bottom-nav').style.display = '';
+  if(isFirstTime){
+    state.tutorialSeen = true;
+    await saveState();
+  }
+  render();
+}
+
+async function submitUsername(){
+  const val = document.getElementById('username-input').value.trim();
+  if(!val) return;
+  state.username = val;
+  await saveState();
+  document.querySelector('header').style.display = '';
+  pickGreeting();
+  pickCuteMsg();
+  if(!state.tutorialSeen){
+    tutorialIndex = 0;
+    openTutorial(true);
+  } else {
+    document.querySelector('.bottom-nav').style.display = '';
+    render();
+  }
+}
+
+function hideSplash(){
+  const s = document.getElementById('splash');
+  if(s){
+    s.style.opacity = '0';
+    s.style.transform = 'scale(1.08)';
+    setTimeout(()=>{ s.remove(); }, 600);
+  }
+}
+
+async function init(){
+  const [_] = await Promise.all([loadState(), new Promise(r=>setTimeout(r,4500))]);
+  if(!state.username){
+    showOnboarding();
+    hideSplash();
+    return;
+  }
+  pickGreeting();
+  pickCuteMsg();
+  render();
+  hideSplash();
+}
+init();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
