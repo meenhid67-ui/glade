@@ -17,7 +17,7 @@
   --ink-soft:#83837A;
   --amber:#6B8F6B;
   --coral:#A66A42;
-  --priority-yellow:#BC9269;
+  --priority-yellow:#C9A227;
   --priority-blue:#7D7D74;
   --line:#C9C4B8;
   --white:#FFFEFB;
@@ -28,7 +28,7 @@ body.dark-mode{
   --ink-soft:#A8A498;
   --amber:#7FA87F;
   --coral:#C97D5C;
-  --priority-yellow:#D4A868;
+  --priority-yellow:#D9B94A;
   --priority-blue:#8FA89C;
   --line:#33403A;
   --white:#24322B;
@@ -370,7 +370,7 @@ function daysUntil(dateStr){
 function priorityColor(p){
   if(p==='red') return 'var(--coral)';
   if(p==='yellow') return 'var(--priority-yellow)';
-  return 'var(--priority-blue)';
+  return 'var(--amber)';
 }
 
 function getAllUpcomingEntries(){
@@ -670,7 +670,7 @@ function openDayModal(dateStr){
         <div style="display:flex;gap:8px;margin-top:6px;">
           <button type="button" onclick="selectEntryPriority(this,'red')" class="priority-pill" style="background:var(--coral);"></button>
           <button type="button" onclick="selectEntryPriority(this,'yellow')" class="priority-pill selected" style="background:var(--priority-yellow);"></button>
-          <button type="button" onclick="selectEntryPriority(this,'blue')" class="priority-pill" style="background:var(--priority-blue);"></button>
+          <button type="button" onclick="selectEntryPriority(this,'blue')" class="priority-pill" style="background:var(--amber);"></button>
         </div>
         <div class="modal-actions">
           <button class="btn ghost" onclick="closeDayModal()">Close</button>
