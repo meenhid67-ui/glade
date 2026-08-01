@@ -1369,7 +1369,23 @@ async function callGeminiOnce(model, systemText, userText, imagePart){
 }
 
 const TEXT_MODEL_CHAIN = ["qwen/qwen3.6-27b", "openai/gpt-oss-120b"];
-const VISION_MODEL_CHAIN = ["qwen/qwen3.6-27b"];
+const VISION_MODEL_CHAIN = ["qwen/qwen3.6-27b", "meta-llama/llama-4-scout-17b-16e-instruct"];
+
+function isRateLimitError(message){
+  return !!message && /rate limit/i.test(message);
+}
+
+// Groq's rate-limit errors include the actual wait time, e.g. "Please try again in 6.14s".
+// If we can read that, it's almost always faster to wait it out and retry the SAME model
+// than to jump straight to a different (possibly weaker) one.
+function parseRetryDelayMs(message){
+  if(!message) return null;
+  const m = /try again in ([\d.]+)\s*s/i.exec(message);
+  if(!m) return null;
+  const secs = parseFloat(m[1]);
+  if(isNaN(secs)) return null;
+  return Math.min(Math.ceil(secs * 1000) + 300, 9000); // small buffer, capped so the UI never hangs too long
+}
 
 async function callGemini(systemText, userText, imagePart){
   const chain = imagePart ? VISION_MODEL_CHAIN : TEXT_MODEL_CHAIN;
@@ -1379,7 +1395,19 @@ async function callGemini(systemText, userText, imagePart){
       return await callGeminiOnce(model, systemText, userText, imagePart);
     }catch(e){
       lastError = e;
-      // Move straight to the next model — no repeat attempts on the same one, to conserve free-tier quota.
+      const msg = (e && e.message) ? e.message : String(e);
+      if(isRateLimitError(msg)){
+        const waitMs = parseRetryDelayMs(msg);
+        if(waitMs){
+          await new Promise(r => setTimeout(r, waitMs));
+          try{
+            return await callGeminiOnce(model, systemText, userText, imagePart);
+          }catch(e2){
+            lastError = e2;
+          }
+        }
+      }
+      // Either not a rate limit, or the retry also failed — move to the next model in the chain.
     }
   }
   throw lastError || new Error('All AI models unavailable');
@@ -1390,7 +1418,7 @@ async function callAI(userMessage, pendingTodos, imagePart){
     ? pendingTodos.map(t=>`${t.subject}: ${t.text}`).join('; ')
     : 'No tasks left for today';
   const toneInstruction = aiTones[currentAiTone] || aiTones.normal;
-  const systemText = `You are a friendly AI study planner assistant inside a student's app, talking to a Matric (South African high school) student. ${toneInstruction} Today's pending tasks: ${todosSummary}. If the student attaches an image or asks about a problem (math, science, anything), solve it accurately at a Matric level. If an equation has no real solutions in a part of it (e.g. a complex/imaginary root), just say plainly that there's no other real solution — do not introduce imaginary numbers or complex-number notation (like "i"), since that's beyond what Matric students study and will only confuse them. Keep your reasoning brief and direct — a few short steps, not an exhaustive derivation. Structure multi-step answers as separate short lines: one step per line, using an actual newline character (\\n) between lines, and put the final answer on its own last line starting with "Answer:". Never cram a multi-step solution into one dense paragraph — that's hard for a student to follow. Do not use markdown, bullets, numbering symbols, or bold — plain text with line breaks only. When writing any math, chemistry, or science content, use ONLY plain, simple text — never LaTeX, never dollar signs, never backslash commands like \\frac or \\times, never underscore-based subscripts. Write formulas and equations the way a person would type them casually, e.g. "8 grams of N2H4" or "2 x 3 = 6" or "H2O", using regular numbers and letters only, no special notation. Reply with ONLY a JSON object, no markdown, no code fences, no extra text, in this exact shape: {"reply": "<your reply to the student, with properly escaped \\n between lines>", "reschedule": true or false}. Set "reschedule" to true only if the student is saying they missed today, couldn't study, or ran out of time and their pending tasks should move to tomorrow. Otherwise false.`;
+  const systemText = `You are a friendly AI study planner assistant inside a student's app, talking to a Matric (South African high school) student. ${toneInstruction} Today's pending tasks: ${todosSummary}. If the student attaches an image or asks about a problem (math, science, anything), solve it accurately at a Matric level. If part of the solution has no real answer (e.g. a complex/imaginary root), just say plainly there's no other real solution — never introduce imaginary numbers or complex-number notation like "i", since that's beyond Matric level and will only confuse a student. Keep reasoning brief — a few short steps, not an exhaustive derivation. For any multi-step problem, structure the reply as numbered plain-text steps, one per line, like "1. ...", "2. ...", "3. ...", with a blank line between each step for breathing room, and finish with a blank line then "Answer: <the final answer>" on its own line. For a short one-line reply (just a quick chat message, not a problem to solve), write it normally without numbering. Never cram a multi-step solution into one dense paragraph — that's hard for a student to follow. Use only plain text: no markdown, no bullet characters, no bold, no asterisks — literal numbers and line breaks only. When writing any math, chemistry, or science content, use ONLY plain, simple text — never LaTeX, never dollar signs, never backslash commands like \\frac or \\times, never underscore-based subscripts. Write formulas and equations the way a person would type them casually, e.g. "8 grams of N2H4" or "2 x 3 = 6" or "H2O", using regular numbers and letters only, no special notation. Reply with ONLY a JSON object, no markdown, no code fences, no extra text, in this exact shape: {"reply": "<your reply to the student, with properly escaped \\n between lines>", "reschedule": true or false}. Set "reschedule" to true only if the student is saying they missed today, couldn't study, or ran out of time and their pending tasks should move to tomorrow. Otherwise false.`;
   return await callGemini(systemText, userMessage, imagePart);
 }
 
@@ -1532,10 +1560,13 @@ function renderChatBubbles(messages){
 
 function renderChat(){
   if(!state.chatLog) state.chatLog = [];
-  if(state.chatLog.length === 0){
-    state.chatLog.push({role:'bot', text: buildPlanSummary(), date: todayStr()});
+  const t = todayStr();
+  let todayMessages = state.chatLog.filter(m => (m.date || t) === t);
+  if(todayMessages.length === 0){
+    const seed = {role:'bot', text: buildPlanSummary(), date: t};
+    state.chatLog.push(seed);
+    todayMessages = [seed];
   }
-  const todayMessages = state.chatLog.filter(m => (m.date || todayStr()) === todayStr());
   const bubbles = renderChatBubbles(todayMessages);
   const toneOptions = [
     {id:'normal', label:'Normal'},
@@ -1547,7 +1578,10 @@ function renderChat(){
   `).join('');
 
   return `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <button onclick="openClearChatConfirm()" style="background:none;border:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px;font-family:'Nunito',sans-serif;padding:4px 2px;">
+        <span style="display:flex;">${icon('trash')}</span>Clear chat
+      </button>
       <button onclick="openChatHistoryList()" style="background:none;border:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px;font-family:'Nunito',sans-serif;padding:4px 2px;">
         <span style="display:flex;">${icon('history')}</span>Past chats
       </button>
@@ -1646,7 +1680,7 @@ async function sendChat(){
 
   state.chatLog = state.chatLog.filter(m => !m.thinking);
   if(debugMsg){
-    state.chatLog.push({role:'bot', text: 'debug: '+debugMsg, date: todayStr()});
+    console.error('AI call failed (shown to user as a calm fallback):', debugMsg);
   }
   if(result.reschedule){
     if(aiEditEnabled){
@@ -1711,7 +1745,8 @@ const iconSvgs = {
   edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
   history: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
   chevronleft: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
-  chevronright: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>'
+  chevronright: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>'
 };
 function icon(name){ return iconSvgs[name] || ''; }
 
@@ -2084,6 +2119,35 @@ async function resetAppData(){
     localStorage.removeItem('glade-planner-state');
   }catch(e){}
   location.reload();
+}
+
+function openClearChatConfirm(){
+  const slot = document.getElementById('confirm-modal-slot');
+  slot.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeClearChatConfirm()">
+      <div class="modal">
+        <div class="tag">Clear today's chat?</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin:8px 0 16px;line-height:1.5;">This clears today's conversation so far. Past days stay saved and can still be viewed under "Past chats." This can't be undone.</div>
+        <div class="modal-actions">
+          <button class="btn ghost" style="flex:1;" onclick="closeClearChatConfirm()">Cancel</button>
+          <button class="btn danger" style="flex:1;" onclick="clearTodayChat()">Clear</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeClearChatConfirm(){
+  const slot = document.getElementById('confirm-modal-slot');
+  if(slot) slot.innerHTML = '';
+}
+
+async function clearTodayChat(){
+  const t = todayStr();
+  state.chatLog = (state.chatLog||[]).filter(m => (m.date || t) !== t);
+  closeClearChatConfirm();
+  await saveState();
+  render();
 }
 
 function applyTheme(){
